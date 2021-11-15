@@ -30,20 +30,23 @@ export function getBook(request: Request, response: Response) {
 }
 
 export function addBook(request: Request, response: Response) {
-  const book: BookModel = request.body;
+  const { title, author, pages, description }: BookModel = request.body;
 
-  Book.create(book, (error: any, book: any) => {
-    sendResponse(error, book, response, 400, 201);
-  });
+  Book.create(
+    { title, author, pages, description },
+    (error: any, book: any) => {
+      sendResponse(error, book, response, 400, 201);
+    }
+  );
 }
 
 export function updateBook(request: Request, response: Response) {
   const id = request.params.id;
-  const updateDetails = request.body;
+  const { title, author, pages, description }: BookModel = request.body;
 
   Book.findByIdAndUpdate(
     id,
-    updateDetails,
+    { title, author, pages, description },
     { returnOriginal: false },
     (error: any, book: any) => {
       sendResponse(error, book, response, 404, 200);
