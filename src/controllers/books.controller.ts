@@ -1,63 +1,66 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
+import { asyncWrapper } from '../utils/async-wrapper.js';
+import { createCustomError } from '../utils/custom-error.js';
 import { BookModel, Book } from '../models/book.model.js';
 
-function sendResponse(
-  error: any,
-  result: any,
-  response: Response,
-  errorCode: 404 | 400,
-  successCode: 200 | 201
-) {
-  if (error) {
-    response.status(errorCode).send(error.message);
-  } else {
-    response.status(successCode).send(result);
+export const getAllBooks = asyncWrapper(
+  async (request: Request, response: Response) => {
+    const books = await Book.find({});
+
+    response.status(200).json(books);
   }
-}
+);
 
-export function getAllBooks(request: Request, response: Response) {
-  Book.find((error: any, books: any) => {
-    sendResponse(error, books, response, 404, 200);
-  });
-}
+export const getBook = asyncWrapper(
+  async (request: Request, response: Response, next: NextFunction) => {
+    const id = request.params.id;
+    const book = await Book.findById(id);
 
-export function getBook(request: Request, response: Response) {
-  const id = request.params.id;
-
-  Book.findById(id, (error: any, book: any) => {
-    sendResponse(error, book, response, 404, 200);
-  });
-}
-
-export function addBook(request: Request, response: Response) {
-  const { title, author, pages, description }: BookModel = request.body;
-
-  Book.create(
-    { title, author, pages, description },
-    (error: any, book: any) => {
-      sendResponse(error, book, response, 400, 201);
+    if (!book) {
+      return next(createCustomError(`No book with id: ${id}`, 404));
     }
-  );
-}
 
-export function updateBook(request: Request, response: Response) {
-  const id = request.params.id;
-  const { title, author, pages, description }: BookModel = request.body;
+    response.status(200).json(book);
+  }
+);
 
-  Book.findByIdAndUpdate(
-    id,
-    { title, author, pages, description },
-    { returnOriginal: false },
-    (error: any, book: any) => {
-      sendResponse(error, book, response, 404, 200);
+export const addBook = asyncWrapper(
+  async (request: Request, response: Response) => {
+    const { title, author, pages, description }: BookModel = request.body;
+    const book = await Book.create({ title, author, pages, description });
+
+    response.status(201).json(book);
+  }
+);
+
+export const updateBook = asyncWrapper(
+  async (request: Request, response: Response, next: NextFunction) => {
+    const id = request.params.id;
+    const { title, author, pages, description }: BookModel = request.body;
+
+    const book = await Book.findByIdAndUpdate(
+      id,
+      { title, author, pages, description },
+      { returnOriginal: false }
+    );
+
+    if (!book) {
+      return next(createCustomError(`No book with id: ${id}`, 404));
     }
-  );
-}
 
-export function deleteBook(request: Request, response: Response) {
-  const id = request.params.id;
+    response.status(200).json(book);
+  }
+);
 
-  Book.findByIdAndDelete(id, (error: any) => {
-    sendResponse(error, 'The book successfully deleted', response, 404, 200);
-  });
-}
+export const deleteBook = asyncWrapper(
+  async (request: Request, response: Response, next: NextFunction) => {
+    const id = request.params.id;
+    const book = await Book.findByIdAndDelete(id);
+
+    if (!book) {
+      return next(createCustomError(`No book with id: ${id}`, 404));
+    }
+
+    response.status(200).send('Book was deleted');
+  }
+);
